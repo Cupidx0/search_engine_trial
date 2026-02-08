@@ -1,5 +1,7 @@
 import re
-
+import math
+import os
+import matplotlib
 from matplotlib import collections
 NON_WORDS = re.compile("[^a-z0-9' ]")
 STOP_WORDS = set('''a able about across after all almost also am
@@ -23,3 +25,17 @@ def get_index_keys(content, add=True):
     wordcount = len(words)
     tf = dict((word, count/wordcount) for word, count in counts.items())
     return tf
+def handle_content(connection,prefix,id,content,add=True):
+    keys = get_index_keys(content)
+    pipe = connection.pipeline(False)
+    if add:
+        pipe.sadd(f"{prefix}:indexed:", id)
+        for key,value in keys.items():
+            pipe.zadd(f"{prefix}:index:{key}", id, value)
+    else:
+        pipe.srem(f"{prefix}:indexed:", id)
+        for key in keys:
+            pipe.zrem(f"{prefix}:index:{key}", id)
+    pipe.execute()
+    return len(keys)
+de
