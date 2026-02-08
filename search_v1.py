@@ -38,4 +38,3 @@ def handle_content(connection,prefix,id,content,add=True):
             pipe.zrem(f"{prefix}:index:{key}", id)
     pipe.execute()
     return len(keys)
-de
