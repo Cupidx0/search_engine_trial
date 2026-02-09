@@ -38,3 +38,29 @@ def handle_content(connection,prefix,id,content,add=True):
             pipe.zrem(f"{prefix}:index:{key}", id)
     pipe.execute()
     return len(keys)
+def search(connection,prefix,query,offset=0,count=10):
+    keys = [f"{prefix}:index:{key}" for key in get_index_keys(query,False)]
+    if not keys:
+        return[],0
+    total_docs = max(connection.scard(f"{prefix}:indexed:"),1)
+    pipe = connection.pipeline(False)
+    for key in keys:
+        pipe.zcard(key)
+    sizes = pipe.execute()
+    def idf(count):
+        if not count:
+            return 0
+        return math.log((total_docs/count,2),0)
+    idfs = map(idf,sizes)
+    weights = dict(zip(keys,idfv)
+                   for keys,size,idfv in zip(keys,sizes,idfs)
+                   if size)
+    if not weights:
+        return [],0
+    temp_key = f"{prefix}:temp:{os.urandom(5).hex()}"
+    try:
+        known = connection.zunionstore(temp_key,weights)
+        ids = connection.zrevrange(temp_key,offset,offset+count-1,withscores=True)
+    finally:
+        self.connection.delete(temp_key)
+        return ids,known
