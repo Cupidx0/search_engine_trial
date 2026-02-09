@@ -62,5 +62,5 @@ def search(connection,prefix,query,offset=0,count=10):
         known = connection.zunionstore(temp_key,weights)
         ids = connection.zrevrange(temp_key,offset,offset+count-1,withscores=True)
     finally:
-        self.connection.delete(temp_key)
+        connection.delete(temp_key)
     return ids,known
